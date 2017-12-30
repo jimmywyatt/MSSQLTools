@@ -1,0 +1,9 @@
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\bin\Debug\MSSQLTools.exe.config
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\bin\Debug\MSSQLTools.exe
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\bin\Debug\MSSQLTools.pdb
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\bin\Debug\Dapper.dll
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\bin\Debug\Dapper.xml
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\obj\Debug\MSSQLTools.csprojResolveAssemblyReference.cache
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\obj\Debug\MSSQLTools.csproj.CoreCompileInputs.cache
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\obj\Debug\MSSQLTools.exe
+C:\Users\james_000\Documents\Visual Studio 2017\Projects\MSSQLTools\MSSQLTools\obj\Debug\MSSQLTools.pdb
