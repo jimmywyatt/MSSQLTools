@@ -59,5 +59,23 @@ namespace MSSQLTools
                 return results;
             }
         }
+
+        public IEnumerable<Databases> GetDatabases()
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var results = connection.Query<Databases>(@"
+                    Select
+		                    [Name]
+		                    , [Dbid]
+	                    From
+		                    sysdatabases
+	                    Where
+		                    [Name] Not In ('master', 'tempdb', 'model', 'msdb')
+                ");
+
+                return results;
+            }
+        }
     }
 }
