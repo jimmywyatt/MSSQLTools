@@ -17,7 +17,7 @@ namespace MSSQLTools.Creators
             {
                 _script.Add("Missing Identity Column");
 
-                Helpers.LogHelper.Log4Net.Debug($"Missing Identity Column ({FileName})");
+                Helpers.LogHelper.Log4Net.Error($"Missing Identity Column ({FileName})");
 
                 return this;
             }
