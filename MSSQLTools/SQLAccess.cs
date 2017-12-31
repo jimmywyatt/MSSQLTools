@@ -77,5 +77,18 @@ namespace MSSQLTools
                 return results;
             }
         }
+
+        public int RunScript(string filePath)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                connection.InfoMessage += (s, e) =>
+                {
+                    Helpers.LogHelper.Log4Net.Debug(e.Message);
+                };
+
+                return connection.Execute(System.IO.File.ReadAllText(filePath));
+            }
+        }
     }
 }

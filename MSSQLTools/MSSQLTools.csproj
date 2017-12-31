@@ -72,6 +72,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Creators\SelectCreator.cs" />
+    <Compile Include="Runners\RunScripts.cs" />
+    <Compile Include="RunTypes.cs" />
     <Compile Include="SQLAccess.cs" />
     <Compile Include="Helpers\SQLHelper.cs" />
     <Compile Include="SQLScripts.cs" />
