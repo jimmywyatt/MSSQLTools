@@ -1,47 +1,52 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using static MSSQLTools.Program;
 
-namespace MSSQLTools
+namespace MSSQLTools.Creators
 {
     public class UpsertCreator
     {
-        public static void Create(Tables table, List<Columns> columns, string outputDirectory)
+        Tables _table = null;
+        SQLScripts _script = new SQLScripts();
+
+        public UpsertCreator Create(Tables table, List<Columns> columns)
         {
-            var script = new SQLScripts();
+            _table = table;
             var identityColumn = columns.FirstOrDefault(x => x.IsIdentity);
 
             if (identityColumn == null)
             {
-                script.Add("Missing Identity Column");
-                script.Save($@"{outputDirectory}\{table.SchemaName}.Update{table.TableName}Procedure.sql");
+                _script.Add("Missing Identity Column");
 
-                return;
+                Helpers.LogHelper.Log4Net.Debug($"Missing Identity Column ({FileName})");
+
+                return this;
             }
 
-            Header(table, columns, script);
+            Header(table, columns, _script);
 
-            Update(table, columns, script, identityColumn);
+            Update(table, columns, _script, identityColumn);
 
-            script.Add(1, "");
+            _script.Add(1, "");
 
-            Insert(table, columns, script, identityColumn);
+            Insert(table, columns, _script, identityColumn);
 
-            script.Add(1, "");
+            _script.Add(1, "");
 
-            Select(table, columns, script, identityColumn);
+            Select(table, columns, _script, identityColumn);
 
-            Footer(script);
+            Footer(_script);
 
-            script.Save($@"{outputDirectory}\{table.SchemaName}.Upsert{table.TableName}Procedure.sql");
+            Helpers.LogHelper.Log4Net.Debug($"Created {FileName}");
+
+            return this;
         }
 
-        private static void Footer(SQLScripts script)
+        private void Footer(SQLScripts script)
         {
             script.Add(0, "End");
         }
 
-        private static void Select(Tables table, List<Columns> columns, SQLScripts script, Columns identityColumn)
+        private void Select(Tables table, List<Columns> columns, SQLScripts script, Columns identityColumn)
         {
             script.Add(1, $"Select");
 
@@ -56,7 +61,7 @@ namespace MSSQLTools
             script.Add(3, $"t.{identityColumn.ColumnName} = @{identityColumn.ColumnName}");
         }
 
-        private static void Insert(Tables table, List<Columns> columns, SQLScripts script, Columns identityColumn)
+        private void Insert(Tables table, List<Columns> columns, SQLScripts script, Columns identityColumn)
         {
             script.Add(1, "If (@@RowCount = 0)");
             script.Add(1, "Begin");
@@ -87,7 +92,7 @@ namespace MSSQLTools
             script.Add(1, "End");
         }
 
-        private static void Update(Tables table, List<Columns> columns, SQLScripts script, Columns identityColumn)
+        private void Update(Tables table, List<Columns> columns, SQLScripts script, Columns identityColumn)
         {
             script.Add(1, "Update");
             script.Add(3, "t");
@@ -104,17 +109,24 @@ namespace MSSQLTools
             script.Add(3, $"t.[{identityColumn.ColumnName}] = @{identityColumn.ColumnName}");
         }
 
-        private static void Header(Tables table, List<Columns> columns, SQLScripts script)
+        private void Header(Tables table, List<Columns> columns, SQLScripts script)
         {
             script.Add($"Create Proc [{table.SchemaName}].Upsert{table.TableName}Procedure");
 
             foreach (var column in columns)
             {
-                script.Add(1, $"{(columns.IndexOf(column) > 0 ? ", " : "")}@{column.ColumnName} {SQLHelper.GetTypeWithLength(column)}");
+                script.Add(1, $"{(columns.IndexOf(column) > 0 ? ", " : "")}@{column.ColumnName} {Helpers.SQLHelper.GetTypeWithLength(column)}");
             }
 
             script.Add($"As");
             script.Add($"Begin");
+        }
+
+        public string FileName => $"Upsert{_table.TableName}Procedure.sql";
+
+        public void Save(string folderPath)
+        {
+            _script.Save($@"{folderPath}\{FileName}");
         }
     }
 }

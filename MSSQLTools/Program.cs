@@ -17,7 +17,7 @@ namespace MSSQLTools
             {
                 GetSettings();
 
-                System.IO.DirectoryInfo directory = SetupoOutputDirectory();
+                System.IO.DirectoryInfo directory = SetupOutputDirectory();
 
                 SQLAccess sqlAccess = new SQLAccess($"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
 
@@ -25,9 +25,9 @@ namespace MSSQLTools
                 {
                     var columns = sqlAccess.GetColumns(table.TableId).ToList();
 
-                    SelectCreator.Create(table, columns, directory.FullName);
-                    UpsertCreator.Create(table, columns, directory.FullName);
-                    DeleteCreator.Create(table, columns, directory.FullName);
+                    new Creators.SelectCreator().Create(table, columns).Save(directory.FullName);
+                    new Creators.UpsertCreator().Create(table, columns).Save(directory.FullName);
+                    new Creators.DeleteCreator().Create(table, columns).Save(directory.FullName);
                 }
 
                 Console.WriteLine("Complete");
@@ -36,9 +36,11 @@ namespace MSSQLTools
             {
                 Console.WriteLine(ex.Message);
             }
+
+            Console.ReadLine();
         }
 
-        private static System.IO.DirectoryInfo SetupoOutputDirectory()
+        private static System.IO.DirectoryInfo SetupOutputDirectory()
         {
             System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(_outputDirectory);
 
