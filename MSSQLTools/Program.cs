@@ -1,4 +1,6 @@
-﻿using System;
+﻿using NDesk.Options;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,13 +11,77 @@ namespace MSSQLTools
     {
         public static string _databaseName = "";
         public static string _serverName = ".";
-        public static string _directoryPath = @"c:\temp\";
+        public static string _path = @"c:\temp\";
+        public static RunTypes _action = RunTypes.NotSet;
 
         static void Main(string[] args)
         {
+            //var a = new System.IO.FileInfo(@"c:\test\");
+            //Console.WriteLine(a.Name);
+            //Console.ReadKey();
+            //return;
+
+            bool show_help = false;
+
+            var p = new OptionSet() {
+                { "h|help",  "Show this message and exit", v => show_help = v != null },
+                { "g|generate",  "Generate Select/Upsert/Delete scripts", v => _action = RunTypes.Generate },
+                { "r|run",  "Run scripts in a directory", v => _action = RunTypes.Run },
+                { "b|backup",  "Backup database to location", v => _action = RunTypes.Backup },
+                { "p|path=",  "Path to output to or run against", v => _path = v },
+                { "d|database=",  "Name of the database", v => _databaseName = v },
+                { "s|server=",  "Name of the server", v => _serverName = v }
+            };
+
             try
             {
-                GetSettingsFromPrompt();
+                p.Parse(args);
+            }
+            catch (OptionException e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine("Try `mssqltools --help' for more information.");
+                return;
+            }
+
+            if (show_help)
+            {
+                ShowHelp(p);
+
+                return;
+            }
+
+            try
+            {
+                if (_action == RunTypes.NotSet)
+                {
+                    GetSettingsFromPrompt();
+                }
+                else
+                {
+                    switch (_action)
+                    {
+                        case RunTypes.Generate:
+                            RunGenerate(_serverName, _databaseName, _path);
+
+                            break;
+                        case RunTypes.Run:
+                            RunRun(_serverName, _databaseName, _path);
+
+                            break;
+                        case RunTypes.Backup:
+                            RunBackup(_serverName, _databaseName, _path);
+
+                            break;
+                        case RunTypes.Exit:
+                            return;
+
+                        default:
+                            Console.WriteLine($@"Not sure what you're trying to do");
+
+                            break;
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -23,16 +89,25 @@ namespace MSSQLTools
             }
         }
 
-        private static System.IO.DirectoryInfo SetupOutputDirectory()
+        static void ShowHelp(OptionSet p)
         {
-            System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(_directoryPath);
+            Console.WriteLine("MSSQL Tools");
+            Console.WriteLine("Small useful tools for use MS SQL.");
+            Console.WriteLine();
+            Console.WriteLine("Options:");
+            p.WriteOptionDescriptions(Console.Out);
+        }
+
+        private static System.IO.DirectoryInfo SetupOutputDirectory(string path, string databaseName)
+        {
+            System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(path);
 
             if (!directory.Exists)
             {
                 directory.Create();
             }
 
-            directory = directory.CreateSubdirectory(_databaseName);
+            directory = directory.CreateSubdirectory(databaseName);
             return directory;
         }
 
@@ -43,15 +118,15 @@ namespace MSSQLTools
             switch (GetRunTypes())
             {
                 case RunTypes.Generate:
-                    RunGenerate();
-
+                    RunGenerate(GetServer(), GetDatabase(), GetPath($@"What output directory? (Leave blank for {_path})"));
+                    
                     break;
                 case RunTypes.Run:
-                    RunRun();
-
+                    RunRun(GetServer(), GetDatabase(), GetPath($@"What scripts directory? (Leave blank for {_path})"));
+                    
                     break;
                 case RunTypes.Backup:
-                    RunBackup();
+                    RunBackup(GetServer(), GetDatabase(), GetPath($@"Backup to? (Leave blank for {_path})"));
 
                     break;
                 case RunTypes.Exit:
@@ -62,61 +137,46 @@ namespace MSSQLTools
 
                     break;
             }
+            
+            Console.Write("Press any key to continue");
+            Console.ReadKey();
 
             GetSettingsFromPrompt();
         }
 
-        private static void RunBackup()
+        private static void RunBackup(string serverName, string databaseName, string path)
         {
-            GetServer();
-            GetDatabase();
-            _directoryPath = $@"c:\temp\{_databaseName}.bak";
-            GetPath($@"Backup to? (Leave blank for {_directoryPath})");
+            SQLAccess sqlAccess = new SQLAccess($"Server={serverName};Database={databaseName};Trusted_Connection=True;");
 
+            System.IO.FileInfo file = new System.IO.FileInfo(path);
+
+            if (string.IsNullOrEmpty(file.Name))
             {
-                SQLAccess sqlAccess = new SQLAccess($"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
-                sqlAccess.Backup(_databaseName, _directoryPath);
+                file = new System.IO.FileInfo($@"{file.Directory.FullName}\{databaseName}.bak");
             }
 
-            Console.Write("Press any key to continue");
-            Console.ReadKey();
+            sqlAccess.Backup(databaseName, file.FullName);
         }
 
-        private static void RunRun()
+        private static void RunRun(string serverName, string databaseName, string path)
         {
-            GetServer();
-            GetDatabase();
-            GetPath($@"What scripts directory? (Leave blank for {_directoryPath})");
-
-            new Runners.RunScripts().Run(_directoryPath, $"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
-
-            Console.Write("Press any key to continue");
-            Console.ReadKey();
+            new Runners.RunScripts().Run(path, $"Server={serverName};Database={databaseName};Trusted_Connection=True;");
         }
 
-        private static void RunGenerate()
+        private static void RunGenerate(string serverName, string databaseName, string path)
         {
-            GetServer();
-            GetDatabase();
-            GetPath($@"What output directory? (Leave blank for {_directoryPath})");
+            System.IO.DirectoryInfo directory = SetupOutputDirectory(path, databaseName);
 
-            System.IO.DirectoryInfo directory = SetupOutputDirectory();
+            SQLAccess sqlAccess = new SQLAccess($"Server={serverName};Database={databaseName};Trusted_Connection=True;");
 
+            foreach (var table in sqlAccess.GetTables())
             {
-                SQLAccess sqlAccess = new SQLAccess($"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
+                var columns = sqlAccess.GetColumns(table.TableId).ToList();
 
-                foreach (var table in sqlAccess.GetTables())
-                {
-                    var columns = sqlAccess.GetColumns(table.TableId).ToList();
-
-                    new Creators.SelectCreator().Create(table, columns).Save(directory.FullName);
-                    new Creators.UpsertCreator().Create(table, columns).Save(directory.FullName);
-                    new Creators.DeleteCreator().Create(table, columns).Save(directory.FullName);
-                }
+                new Creators.SelectCreator().Create(table, columns).Save(directory.FullName);
+                new Creators.UpsertCreator().Create(table, columns).Save(directory.FullName);
+                new Creators.DeleteCreator().Create(table, columns).Save(directory.FullName);
             }
-
-            Console.Write("Press any key to continue");
-            Console.ReadKey();
         }
 
         private static RunTypes GetRunTypes()
@@ -139,29 +199,33 @@ namespace MSSQLTools
             }
         }
 
-        private static void GetPath(string message)
+        private static string GetPath(string message)
         {
             Console.WriteLine(message);
-            string outputDirectory = Console.ReadLine();
+            string path = Console.ReadLine();
 
-            if (!string.IsNullOrEmpty(outputDirectory))
+            if (!string.IsNullOrEmpty(path))
             {
-                _directoryPath = outputDirectory;
+                return path;
             }
+
+            return _path;
         }
 
-        private static void GetServer()
+        private static string GetServer()
         {
             Console.WriteLine("Server name? (Leave blank for local(.))");
             string serverName = Console.ReadLine();
 
             if (!string.IsNullOrEmpty(serverName))
             {
-                _serverName = serverName;
+                return serverName;
             }
+
+            return _serverName;
         }
 
-        private static void GetDatabase()
+        private static string GetDatabase()
         {
             SQLAccess sqlAccess = new SQLAccess($"Server={_serverName};Database=Master;Trusted_Connection=True;");
 
@@ -182,15 +246,17 @@ namespace MSSQLTools
                 {
                     Console.WriteLine("Failed to find a database with that Id, please enter the number");
 
-                    GetDatabase();
+                    return GetDatabase();
                 }
             }
             else
             {
                 Console.WriteLine("Please enter the number");
 
-                GetDatabase();
+                return GetDatabase();
             }
+
+            return _databaseName;
         }
     }
 }
