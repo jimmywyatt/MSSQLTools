@@ -13,6 +13,14 @@ Download the sourcecode and run the project, it will ask you to choose a server,
 
 Same as above, it will run any scripts in the sub directories specified and log the results.
 
+## Backup
+
+Can be useful if you need to backup a data from the command line or thought the task scheduler.
+
+## Running
+
+You can run the tool by calling MSSQLTools from the command prompt and following the prompts or passing --help and seeing the possible given parameters.
+
 ## Licence
 
 This project is licened under the MIT licence.
