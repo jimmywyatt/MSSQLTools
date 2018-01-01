@@ -9,6 +9,10 @@ This script format is based on the style guide published here [Style Guide](http
 
 Download the sourcecode and run the project, it will ask you to choose a server, database and output folder into which the scripts will be placed.
 
+## Batch running scripts
+
+Same as above, it will run any scripts in the sub directories specified and log the results.
+
 ## Licence
 
 This project is licened under the MIT licence.
