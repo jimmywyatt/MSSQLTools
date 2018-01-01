@@ -43,36 +43,15 @@ namespace MSSQLTools
             switch (GetRunTypes())
             {
                 case RunTypes.Generate:
-                    GetServer();
-                    GetDatabase();
-                    GetOutputLocation();
+                    RunGenerate();
 
-                    System.IO.DirectoryInfo directory = SetupOutputDirectory();
-
-                    SQLAccess sqlAccess = new SQLAccess($"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
-                    
-                    foreach (var table in sqlAccess.GetTables())
-                    {
-                        var columns = sqlAccess.GetColumns(table.TableId).ToList();
-
-                        new Creators.SelectCreator().Create(table, columns).Save(directory.FullName);
-                        new Creators.UpsertCreator().Create(table, columns).Save(directory.FullName);
-                        new Creators.DeleteCreator().Create(table, columns).Save(directory.FullName);
-                    }
-
-                    Console.Write("Press any key to continue");
-                    Console.ReadKey();
-                    
                     break;
                 case RunTypes.Run:
-                    GetServer();
-                    GetDatabase();
-                    GetScriptsLocation();
+                    RunRun();
 
-                    new Runners.RunScripts().Run(_directoryPath, $"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
-
-                    Console.Write("Press any key to continue");
-                    Console.ReadKey();
+                    break;
+                case RunTypes.Backup:
+                    RunBackup();
 
                     break;
                 case RunTypes.Exit:
@@ -87,11 +66,65 @@ namespace MSSQLTools
             GetSettingsFromPrompt();
         }
 
+        private static void RunBackup()
+        {
+            GetServer();
+            GetDatabase();
+            _directoryPath = $@"c:\temp\{_databaseName}.bak";
+            GetPath($@"Backup to? (Leave blank for {_directoryPath})");
+
+            {
+                SQLAccess sqlAccess = new SQLAccess($"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
+                sqlAccess.Backup(_databaseName, _directoryPath);
+            }
+
+            Console.Write("Press any key to continue");
+            Console.ReadKey();
+        }
+
+        private static void RunRun()
+        {
+            GetServer();
+            GetDatabase();
+            GetPath($@"What scripts directory? (Leave blank for {_directoryPath})");
+
+            new Runners.RunScripts().Run(_directoryPath, $"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
+
+            Console.Write("Press any key to continue");
+            Console.ReadKey();
+        }
+
+        private static void RunGenerate()
+        {
+            GetServer();
+            GetDatabase();
+            GetPath($@"What output directory? (Leave blank for {_directoryPath})");
+
+            System.IO.DirectoryInfo directory = SetupOutputDirectory();
+
+            {
+                SQLAccess sqlAccess = new SQLAccess($"Server={_serverName};Database={_databaseName};Trusted_Connection=True;");
+
+                foreach (var table in sqlAccess.GetTables())
+                {
+                    var columns = sqlAccess.GetColumns(table.TableId).ToList();
+
+                    new Creators.SelectCreator().Create(table, columns).Save(directory.FullName);
+                    new Creators.UpsertCreator().Create(table, columns).Save(directory.FullName);
+                    new Creators.DeleteCreator().Create(table, columns).Save(directory.FullName);
+                }
+            }
+
+            Console.Write("Press any key to continue");
+            Console.ReadKey();
+        }
+
         private static RunTypes GetRunTypes()
         {
             Console.WriteLine($@"What do you want to do?");
             Console.WriteLine($@"(0) Generate Scripts");
             Console.WriteLine($@"(1) Run Scripts");
+            Console.WriteLine($@"(2) Backup");
             Console.WriteLine($@"(100) Exit");
 
             if (int.TryParse(Console.ReadLine(), out int result))
@@ -106,22 +139,11 @@ namespace MSSQLTools
             }
         }
 
-        private static void GetScriptsLocation()
+        private static void GetPath(string message)
         {
-            Console.WriteLine($@"What scripts directory? (Leave blank for {_directoryPath})");
+            Console.WriteLine(message);
             string outputDirectory = Console.ReadLine();
 
-            if (!string.IsNullOrEmpty(outputDirectory))
-            {
-                _directoryPath = outputDirectory;
-            }
-        }
-
-        private static void GetOutputLocation()
-        {
-            Console.WriteLine($@"What output directory? (Leave blank for {_directoryPath})");
-            string outputDirectory = Console.ReadLine();
-            
             if (!string.IsNullOrEmpty(outputDirectory))
             {
                 _directoryPath = outputDirectory;

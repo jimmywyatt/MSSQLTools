@@ -90,5 +90,25 @@ namespace MSSQLTools
                 return connection.Execute(System.IO.File.ReadAllText(filePath));
             }
         }
+
+        public int Backup(string databaseName, string filePath)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                connection.InfoMessage += (s, e) =>
+                {
+                    Helpers.LogHelper.Log4Net.Debug(e.Message);
+                };
+
+                return connection.Execute($@"
+                    Backup Database [{databaseName}] 
+	                    To Disk = N'{filePath}' WITH NOFORMAT
+	                    , INIT
+	                    , NAME = N'{databaseName}-Full Database Backup'
+	                    , SKIP
+	                    , STATS = 10
+                ");
+            }
+        }
     }
 }
